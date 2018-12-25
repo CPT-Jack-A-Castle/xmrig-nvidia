@@ -6,7 +6,9 @@ option(WITH_SUMO      "CryptoNight-Heavy support" ON)
 option(WITH_HTTPD     "HTTP REST API" ON)
 option(WITH_DEBUG_LOG "Enable debug log output" OFF)
 option(WITH_TLS       "Enable OpenSSL support" ON)
+option(WITH_ASM       "Enable ASM PoW implementations" ON)
 option(BUILD_STATIC   "Build static binary" OFF)
+option(TEST_CN_R      "Test mode for Cryptonight R" OFF)
 
 include (CheckIncludeFile)
 include (cmake/cpu.cmake)
@@ -117,6 +119,7 @@ set(SOURCES
     src/common/Platform.cpp
     src/core/Config.cpp
     src/core/Controller.cpp
+    src/Mem.cpp
     src/net/Network.cpp
     src/net/strategies/DonateStrategy.cpp
     src/nvidia/CudaCLI.cpp
@@ -137,11 +140,18 @@ set(SOURCES_CRYPTO
     src/crypto/CryptoNight.cpp
    )
 
+if (WITH_ASM)
+    set(HEADERS_CRYPTO "${HEADERS_CRYPTO}" src/crypto/asm/CryptonightR_template.h)
+    set(HEADERS_CRYPTO "${HEADERS_CRYPTO}" src/crypto/asm/CryptonightR_64_template.h)
+    set(SOURCES_CRYPTO "${SOURCES_CRYPTO}" src/crypto/CryptonightR_gen.cpp)
+endif()
+
 if (WIN32)
     set(SOURCES_OS
         res/app.rc
         src/App_win.cpp
         src/common/Platform_win.cpp
+        src/Mem_win.cpp
         )
 
     add_definitions(/DWIN32)
@@ -150,11 +160,13 @@ elseif (APPLE)
     set(SOURCES_OS
         src/App_unix.cpp
         src/common/Platform_mac.cpp
+        src/Mem_unix.cpp
         )
 else()
     set(SOURCES_OS
         src/App_unix.cpp
         src/common/Platform_unix.cpp
+        src/Mem_unix.cpp
         )
 
     set(EXTRA_LIBS pthread rt dl)
@@ -165,6 +177,9 @@ add_definitions(/DUNICODE)
 add_definitions(/DXMRIG_NVIDIA_PROJECT)
 add_definitions(/DXMRIG_NO_LIBCPUID)
 add_definitions(/DXMRIG_NO_ASM)
+if (TEST_CN_R)
+    add_definitions(/DXMRIG_TEST_CRYPTONIGHT_R)
+endif()
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -195,6 +210,7 @@ else()
 endif()
 
 include(cmake/OpenSSL.cmake)
+include(cmake/asm.cmake)
 
 CHECK_INCLUDE_FILE (syslog.h HAVE_SYSLOG_H)
 if (HAVE_SYSLOG_H)
@@ -240,5 +256,5 @@ if (WITH_DEBUG_LOG)
     add_definitions(/DAPP_DEBUG)
 endif()
 
-add_executable(${CMAKE_PROJECT_NAME} ${HEADERS} ${SOURCES} ${SOURCES_OS} ${SOURCES_NVML} ${HEADERS_CRYPTO} ${SOURCES_CRYPTO} ${SOURCES_SYSLOG} ${HTTPD_SOURCES} ${TLS_SOURCES})
-target_link_libraries(${CMAKE_PROJECT_NAME} xmrig-cuda ${OPENSSL_LIBRARIES} ${UV_LIBRARIES} ${MHD_LIBRARY} ${LIBS} ${EXTRA_LIBS} ${CPUID_LIB})
+add_executable(${CMAKE_PROJECT_NAME} ${HEADERS} ${SOURCES} ${SOURCES_OS} ${SOURCES_NVML} ${HEADERS_CRYPTO} ${SOURCES_CRYPTO} ${SOURCES_SYSLOG} ${HTTPD_SOURCES} ${TLS_SOURCES} ${XMRIG_ASM_SOURCES})
+target_link_libraries(${CMAKE_PROJECT_NAME} xmrig-cuda ${XMRIG_ASM_LIBRARY} ${OPENSSL_LIBRARIES} ${UV_LIBRARIES} ${MHD_LIBRARY} ${LIBS} ${EXTRA_LIBS} ${CPUID_LIB})

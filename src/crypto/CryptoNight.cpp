@@ -24,11 +24,13 @@
 
 
 #include <assert.h>
+#include <sstream>
 
 
 #include "common/cpu/Cpu.h"
+#include "common/log/Log.h"
 #include "common/net/Job.h"
-#include "common/utils/mm_malloc.h"
+#include "Mem.h"
 #include "crypto/CryptoNight.h"
 #include "crypto/CryptoNight_test.h"
 #include "crypto/CryptoNight_x86.h"
@@ -42,7 +44,7 @@ xmrig::AlgoVerify CryptoNight::m_av  = xmrig::VERIFY_HW_AES;
 
 bool CryptoNight::hash(const Job &job, JobResult &result, cryptonight_ctx *ctx)
 {
-    fn(job.algorithm().variant())(job.blob(), job.size(), result.result, &ctx);
+    fn(job.algorithm().variant())(job.blob(), job.size(), result.result, &ctx, job.height());
 
     return *reinterpret_cast<uint64_t*>(result.result + 24) < job.target();
 }
@@ -53,11 +55,7 @@ bool CryptoNight::init(xmrig::Algo algorithm)
     m_algorithm = algorithm;
     m_av        = xmrig::Cpu::info()->hasAES() ? xmrig::VERIFY_HW_AES : xmrig::VERIFY_SOFT_AES;
 
-    const bool valid = selfTest();
-    freeCtx(m_ctx);
-    m_ctx = nullptr;
-
-    return valid;
+    return selfTest();
 }
 
 
@@ -90,8 +88,26 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         cryptonight_single_hash<CRYPTONIGHT, false, VARIANT_RTO>,
         cryptonight_single_hash<CRYPTONIGHT, true,  VARIANT_RTO>,
 
+#       ifdef XMRIG_NO_ASM
         cryptonight_single_hash<CRYPTONIGHT, false, VARIANT_2>,
-        cryptonight_single_hash<CRYPTONIGHT, true,  VARIANT_2>,
+#       else
+        cryptonight_single_hash_asm<CRYPTONIGHT, VARIANT_2, ASM_AUTO>,
+#       endif
+        cryptonight_single_hash<CRYPTONIGHT, true, VARIANT_2>,
+
+#       ifdef XMRIG_NO_ASM
+        cryptonight_single_hash<CRYPTONIGHT, false, VARIANT_4>,
+#       else
+        cryptonight_single_hash_asm<CRYPTONIGHT, VARIANT_4, ASM_AUTO>,
+#       endif
+        cryptonight_single_hash<CRYPTONIGHT, true, VARIANT_4>,
+
+#       ifdef XMRIG_NO_ASM
+        cryptonight_single_hash<CRYPTONIGHT, false, VARIANT_4_64>,
+#       else
+        cryptonight_single_hash_asm<CRYPTONIGHT, VARIANT_4_64, ASM_AUTO>,
+#       endif
+        cryptonight_single_hash<CRYPTONIGHT, true, VARIANT_4_64>,
 
 #       ifndef XMRIG_NO_AEON
         cryptonight_single_hash<CRYPTONIGHT_LITE, false, VARIANT_0>,
@@ -107,7 +123,10 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         nullptr, nullptr, // VARIANT_XAO
         nullptr, nullptr, // VARIANT_RTO
         nullptr, nullptr, // VARIANT_2
+        nullptr, nullptr, // VARIANT_4
+        nullptr, nullptr, // VARIANT_4_64
 #       else
+        nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
@@ -133,7 +152,10 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         nullptr, nullptr, // VARIANT_XAO
         nullptr, nullptr, // VARIANT_RTO
         nullptr, nullptr, // VARIANT_2
+        nullptr, nullptr, // VARIANT_4
+        nullptr, nullptr, // VARIANT_4_64
 #       else
+        nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
@@ -157,29 +179,20 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
 }
 
 
-cryptonight_ctx *CryptoNight::createCtx(xmrig::Algo algorithm)
-{
-    cryptonight_ctx *ctx = static_cast<cryptonight_ctx *>(_mm_malloc(sizeof(cryptonight_ctx), 16));
-    ctx->memory          = static_cast<uint8_t *>(_mm_malloc(xmrig::cn_select_memory(algorithm), 16));
-
-    return ctx;
-}
-
-
-void CryptoNight::freeCtx(cryptonight_ctx *ctx)
-{
-    _mm_free(ctx->memory);
-    _mm_free(ctx);
-}
-
-
 bool CryptoNight::selfTest() {
     using namespace xmrig;
 
-    m_ctx = createCtx(m_algorithm);
+    MemInfo info = Mem::create(&m_ctx, m_algorithm, 1);
 
     if (m_algorithm == xmrig::CRYPTONIGHT) {
-        return verify(VARIANT_0,   test_output_v0)  &&
+        if (!verify2(VARIANT_4, test_input_R) || !verify2(VARIANT_4_64, test_input_R_64)) {
+#ifndef XMRIG_TEST_CRYPTONIGHT_R
+            return false;
+#else
+            LOG_WARN("CryptonightR self-test failed");
+#endif
+        }
+        return verify(VARIANT_0, test_output_v0) &&
                verify(VARIANT_1,   test_output_v1)  &&
                verify(VARIANT_2,   test_output_v2)  &&
                verify(VARIANT_XTL, test_output_xtl) &&
@@ -203,6 +216,9 @@ bool CryptoNight::selfTest() {
     }
 #   endif
 
+    Mem::release(&m_ctx, 1, info);
+    m_ctx = nullptr;
+
     return false;
 }
 
@@ -220,7 +236,60 @@ bool CryptoNight::verify(xmrig::Variant variant, const uint8_t *referenceValue)
         return false;
     }
 
-    func(test_input, 76, output, &m_ctx);
+    func(test_input, 76, output, &m_ctx, 0);
 
     return memcmp(output, referenceValue, 32) == 0;
+}
+
+bool CryptoNight::verify2(xmrig::Variant variant, const char *test_data)
+{
+    cn_hash_fun func = fn(variant);
+    if (!func) {
+        return false;
+    }
+
+    std::stringstream s(test_data);
+    std::string expected_hex;
+    std::string input_hex;
+    uint64_t height;
+    while (!s.eof())
+    {
+        uint8_t referenceValue[32];
+        uint8_t input[256];
+
+        s >> expected_hex;
+        s >> input_hex;
+        s >> height;
+
+        if ((expected_hex.length() != 64) || (input_hex.length() > 512))
+        {
+            return false;
+        }
+
+        bool err = false;
+
+        for (int i = 0; i < 32; ++i)
+        {
+            referenceValue[i] = (hf_hex2bin(expected_hex[i * 2], err) << 4) + hf_hex2bin(expected_hex[i * 2 + 1], err);
+        }
+
+        const size_t input_len = input_hex.length() / 2;
+        for (size_t i = 0; i < input_len; ++i)
+        {
+            input[i] = (hf_hex2bin(input_hex[i * 2], err) << 4) + hf_hex2bin(input_hex[i * 2 + 1], err);
+        }
+
+        if (err)
+        {
+            return false;
+        }
+
+        uint8_t hash[32];
+        func(input, input_len, hash, &m_ctx, height);
+        if (memcmp(hash, referenceValue, sizeof(hash)) != 0)
+        {
+            return false;
+        }
+    }
+    return true;
 }
