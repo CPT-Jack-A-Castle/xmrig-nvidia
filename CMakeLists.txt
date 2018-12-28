@@ -123,6 +123,7 @@ set(SOURCES
     src/net/Network.cpp
     src/net/strategies/DonateStrategy.cpp
     src/nvidia/CudaCLI.cpp
+    src/nvidia/CudaCryptonightR_gen.cpp
     src/Summary.cpp
     src/workers/CudaWorker.cpp
     src/workers/CudaThread.cpp
@@ -176,7 +177,6 @@ add_definitions(/D__STDC_FORMAT_MACROS)
 add_definitions(/DUNICODE)
 add_definitions(/DXMRIG_NVIDIA_PROJECT)
 add_definitions(/DXMRIG_NO_LIBCPUID)
-add_definitions(/DXMRIG_NO_ASM)
 if (TEST_CN_R)
     add_definitions(/DXMRIG_TEST_CRYPTONIGHT_R)
 endif()
