@@ -470,7 +470,7 @@ __global__ void CryptonightR_phase2(
 
         myChunks[idx1 + sub] = cx_aes ^ bx0;
 
-	((ulonglong4*)ptr0)[sub] = ((ulonglong4*)myChunks)[sub];
+        ((ulonglong4*)ptr0)[sub] = ((ulonglong4*)myChunks)[sub];
 
         idx0 = shuffle<2>(sPtr, sub, cx_aes.x, 0);
         idx1 = (idx0 & 0x30) >> 3;

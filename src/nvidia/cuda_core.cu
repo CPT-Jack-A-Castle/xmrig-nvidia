@@ -732,7 +732,7 @@ void cryptonight_core_gpu_hash(nvid_ctx* ctx, uint32_t nonce)
                 ctx->kernel,
                 grid.x, grid.y, grid.z,
                 block2.x, block2.y, block2.z,
-                sizeof(uint64_t) * block2.x * 8 + block2.x * sizeof(uint32_t) * static_cast<int>(ctx->device_arch[0] < 3), nullptr,
+                sizeof(uint64_t) * block.x * 8 + block.x * sizeof(uint32_t) * static_cast<int>(ctx->device_arch[0] < 3), nullptr,
                 args, 0
             ));
             CU_CHECK(ctx->device_id, cuCtxSynchronize());
@@ -740,7 +740,7 @@ void cryptonight_core_gpu_hash(nvid_ctx* ctx, uint32_t nonce)
             CUDA_CHECK_KERNEL(ctx->device_id, cryptonight_core_gpu_phase2_double<ITERATIONS, MEM, MASK, ALGO, VARIANT><<<
                 grid,
                 block2,
-                sizeof(uint64_t) * block2.x * 8 + block2.x * sizeof(uint32_t) * static_cast<int>(ctx->device_arch[0] < 3)
+                sizeof(uint64_t) * block.x * 8 + block.x * sizeof(uint32_t) * static_cast<int>(ctx->device_arch[0] < 3)
             >>>(
                 ctx->device_blocks * ctx->device_threads,
                 ctx->device_bfactor,
