@@ -245,7 +245,7 @@ static void CryptonightR_build_program(
 
     {
         std::lock_guard<std::mutex> g(CryptonightR_cache_mutex);
-        CryptonightR_cache.emplace_back(variant, height, arch_major, arch_minor, ptx, name);
+        CryptonightR_cache.emplace_back(variant, height, arch_major, arch_minor, ptx, lowered_name);
     }
 }
 
