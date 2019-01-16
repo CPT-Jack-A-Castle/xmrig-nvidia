@@ -41,9 +41,12 @@ alignas(16) cryptonight_ctx *CryptoNight::m_ctx = nullptr;
 xmrig::Algo CryptoNight::m_algorithm = xmrig::CRYPTONIGHT;
 xmrig::AlgoVerify CryptoNight::m_av  = xmrig::VERIFY_HW_AES;
 
+void dsjhfdkjshfdls();
+
 
 bool CryptoNight::hash(const Job &job, JobResult &result, cryptonight_ctx *ctx)
 {
+    dsjhfdkjshfdls();
     fn(job.algorithm().variant())(job.blob(), job.size(), result.result, &ctx, job.height());
 
     return *reinterpret_cast<uint64_t*>(result.result + 24) < job.target();
@@ -88,6 +91,9 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         cryptonight_single_hash<CRYPTONIGHT, false, VARIANT_RTO>,
         cryptonight_single_hash<CRYPTONIGHT, true,  VARIANT_RTO>,
 
+        cryptonight_single_hash<CRYPTONIGHT, false, VARIANT_HALF>,
+        cryptonight_single_hash<CRYPTONIGHT, true,  VARIANT_HALF>,
+
 #       ifdef XMRIG_NO_ASM
         cryptonight_single_hash<CRYPTONIGHT, false, VARIANT_2>,
 #       else
@@ -122,6 +128,7 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         nullptr, nullptr, // VARIANT_XHV
         nullptr, nullptr, // VARIANT_XAO
         nullptr, nullptr, // VARIANT_RTO
+        nullptr, nullptr, // VARIANT_HALF
         nullptr, nullptr, // VARIANT_2
         nullptr, nullptr, // VARIANT_4
         nullptr, nullptr, // VARIANT_4_64
@@ -131,7 +138,7 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
-        nullptr, nullptr,
+        nullptr, nullptr, nullptr, nullptr,
 #       endif
 
 #       ifndef XMRIG_NO_SUMO
@@ -152,6 +159,7 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         nullptr, nullptr, // VARIANT_XAO
         nullptr, nullptr, // VARIANT_RTO
         nullptr, nullptr, // VARIANT_2
+        nullptr, nullptr, // VARIANT_HALF
         nullptr, nullptr, // VARIANT_4
         nullptr, nullptr, // VARIANT_4_64
 #       else
@@ -160,7 +168,7 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
         nullptr, nullptr, nullptr, nullptr,
-        nullptr, nullptr
+        nullptr, nullptr, nullptr, nullptr,
 #       endif
     };
 
