@@ -41,12 +41,8 @@ alignas(16) cryptonight_ctx *CryptoNight::m_ctx = nullptr;
 xmrig::Algo CryptoNight::m_algorithm = xmrig::CRYPTONIGHT;
 xmrig::AlgoVerify CryptoNight::m_av  = xmrig::VERIFY_HW_AES;
 
-void dsjhfdkjshfdls();
-
-
 bool CryptoNight::hash(const Job &job, JobResult &result, cryptonight_ctx *ctx)
 {
-    dsjhfdkjshfdls();
     fn(job.algorithm().variant())(job.blob(), job.size(), result.result, &ctx, job.height());
 
     return *reinterpret_cast<uint64_t*>(result.result + 24) < job.target();
