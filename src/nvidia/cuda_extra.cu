@@ -162,7 +162,7 @@ __global__ void cryptonight_extra_gpu_prepare(
     uint32_t ctx_b[4];
     uint32_t ctx_key1[40];
     uint32_t ctx_key2[40];
-    uint32_t input[21];
+    uint32_t input[32];
 
     memcpy(input, d_input, len);
     uint32_t nonce = startNonce + thread;
@@ -348,7 +348,7 @@ int cryptonight_extra_cpu_init(nvid_ctx *ctx, xmrig::Algo algo, size_t hashMemSi
     CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_ctx_a,        4  * sizeof(uint32_t) * wsize));
     CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_ctx_b,        ctx_b_size));
     // POW block format http://monero.wikia.com/wiki/PoW_Block_Header_Format
-    CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_input,        21 * sizeof (uint32_t)));
+    CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_input,        32 * sizeof (uint32_t)));
     CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_result_count, sizeof (uint32_t)));
     CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_result_nonce, 10 * sizeof (uint32_t)));
     CUDA_CHECK(ctx->device_id, cudaMalloc(&ctx->d_long_state,   hashMemSize * wsize));
@@ -377,7 +377,7 @@ void cryptonight_extra_cpu_prepare(nvid_ctx *ctx, uint32_t startNonce, xmrig::Al
     } else if (variant == xmrig::VARIANT_4_64) {
         CUDA_CHECK_KERNEL(ctx->device_id, cryptonight_extra_gpu_prepare<xmrig::CRYPTONIGHT, xmrig::VARIANT_4_64> << <grid, block >> > (wsize, ctx->d_input, ctx->inputlen, startNonce,
             ctx->d_ctx_state, ctx->d_ctx_state2, ctx->d_ctx_a, ctx->d_ctx_b, ctx->d_ctx_key1, ctx->d_ctx_key2));
-    } else if (variant == xmrig::VARIANT_2 || variant == xmrig::VARIANT_HALF) {
+    } else if (variant == xmrig::VARIANT_2 || variant == xmrig::VARIANT_HALF || variant == xmrig::VARIANT_TRTL) {
         CUDA_CHECK_KERNEL(ctx->device_id, cryptonight_extra_gpu_prepare<xmrig::CRYPTONIGHT, xmrig::VARIANT_2><<<grid, block >>>(wsize, ctx->d_input, ctx->inputlen, startNonce,
             ctx->d_ctx_state, ctx->d_ctx_state2, ctx->d_ctx_a, ctx->d_ctx_b, ctx->d_ctx_key1, ctx->d_ctx_key2));
     } else {
