@@ -3,7 +3,7 @@
 #include <mutex>
 #include <cstring>
 #include <nvrtc.h>
-#include "crypto/variant4_random_math.h"
+#include "crypto/CryptoNight_monero.h"
 #include "nvidia/CudaCryptonightR_gen.h"
 #include "common/log/Log.h"
 

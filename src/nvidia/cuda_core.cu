@@ -30,6 +30,7 @@
 #include <cuda_runtime.h>
 #include "CudaCryptonightR_gen.h"
 #include "common/log/Log.h"
+#include "common/utils/timestamp.h"
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -862,6 +863,8 @@ void cryptonight_gpu_hash(nvid_ctx *ctx, xmrig::Algo algo, xmrig::Variant varian
     if (algo == CRYPTONIGHT) {
         if ((variant == VARIANT_4) || (variant == VARIANT_4_64)) {
             if ((ctx->kernel_variant != variant) || (ctx->kernel_height != height)) {
+                const int64_t timeStart = xmrig::steadyTimestamp();
+
                 if (ctx->module) {
                     cuModuleUnload(ctx->module);
                 }
@@ -877,6 +880,9 @@ void cryptonight_gpu_hash(nvid_ctx *ctx, xmrig::Algo algo, xmrig::Variant varian
                 ctx->kernel_height = height;
 
                 CryptonightR_get_program(ptx, lowered_name, variant, height + 1, ctx->device_arch[0], ctx->device_arch[1], true);
+
+                const int64_t timeFinish = xmrig::steadyTimestamp();
+                LOG_INFO("GPU #%d updated CryptonightR in %.3fs", ctx->device_id, (timeFinish - timeStart) / 1000.0);
             }
         }
 

@@ -60,6 +60,7 @@ xmrig::CpuThread::cn_mainloop_fun        cn_trtl_mainloop_ryzen_asm;
 xmrig::CpuThread::cn_mainloop_fun        cn_trtl_mainloop_bulldozer_asm;
 xmrig::CpuThread::cn_mainloop_double_fun cn_trtl_double_mainloop_sandybridge_asm;
 
+#ifndef XMRIG_NO_ASM
 template<typename T, typename U>
 static void patchCode(T dst, U src, const uint32_t iterations, const uint32_t mask)
 {
@@ -122,11 +123,13 @@ static void patchAsmVariants()
     Mem::protectExecutableMemory(base, allocation_size);
     Mem::flushInstructionCache(base, allocation_size);
 }
-
+#endif
 
 bool CryptoNight::init(xmrig::Algo algorithm)
 {
+#ifndef XMRIG_NO_ASM
     patchAsmVariants();
+#endif
 
     m_algorithm = algorithm;
     m_av        = xmrig::Cpu::info()->hasAES() ? xmrig::VERIFY_HW_AES : xmrig::VERIFY_SOFT_AES;
