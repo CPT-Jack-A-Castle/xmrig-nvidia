@@ -50,6 +50,7 @@ bool CryptoNight::hash(const Job &job, JobResult &result, cryptonight_ctx *ctx)
 }
 
 
+#ifndef XMRIG_NO_ASM
 xmrig::CpuThread::cn_mainloop_fun cn_half_mainloop_ivybridge_asm = nullptr;
 xmrig::CpuThread::cn_mainloop_fun cn_half_mainloop_ryzen_asm = nullptr;
 xmrig::CpuThread::cn_mainloop_fun cn_half_mainloop_bulldozer_asm = nullptr;
@@ -60,7 +61,6 @@ xmrig::CpuThread::cn_mainloop_fun        cn_trtl_mainloop_ryzen_asm;
 xmrig::CpuThread::cn_mainloop_fun        cn_trtl_mainloop_bulldozer_asm;
 xmrig::CpuThread::cn_mainloop_double_fun cn_trtl_double_mainloop_sandybridge_asm;
 
-#ifndef XMRIG_NO_ASM
 template<typename T, typename U>
 static void patchCode(T dst, U src, const uint32_t iterations, const uint32_t mask)
 {
