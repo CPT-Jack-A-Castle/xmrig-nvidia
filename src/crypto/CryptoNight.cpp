@@ -342,7 +342,7 @@ bool CryptoNight::selfTest() {
             LOG_WARN("CryptonightR self-test failed");
             return false;
         }
-        if (!verify2(VARIANT_4, test_input_R_64)) {
+        if (!verify2(VARIANT_4_64, test_input_R_64)) {
             LOG_WARN("CryptonightR (64-bit) self-test failed");
             return false;
         }
