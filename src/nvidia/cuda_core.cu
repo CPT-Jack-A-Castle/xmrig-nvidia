@@ -727,7 +727,7 @@ void cryptonight_core_gpu_hash(nvid_ctx* ctx, uint32_t nonce)
     }
 
     for (int i = 0; i < partcount; i++) {
-        if ((VARIANT == xmrig::VARIANT_4) || (VARIANT == xmrig::VARIANT_4_64)) {
+        if ((VARIANT == xmrig::VARIANT_WOW) || (VARIANT == xmrig::VARIANT_4) || (VARIANT == xmrig::VARIANT_4_64)) {
             int threads = ctx->device_blocks * ctx->device_threads;
             void* args[] = { &threads, &ctx->device_bfactor, &i, &ctx->d_long_state, &ctx->d_ctx_a, &ctx->d_ctx_b, &ctx->d_ctx_state, &nonce, &ctx->d_input };
             CU_CHECK(ctx->device_id, cuLaunchKernel(
@@ -861,9 +861,11 @@ void cryptonight_gpu_hash(nvid_ctx *ctx, xmrig::Algo algo, xmrig::Variant varian
     using namespace xmrig;
 
     if (algo == CRYPTONIGHT) {
-        if ((variant == VARIANT_4) || (variant == VARIANT_4_64)) {
+        if ((variant == VARIANT_WOW) || (variant == VARIANT_4) || (variant == VARIANT_4_64)) {
             if ((ctx->kernel_variant != variant) || (ctx->kernel_height != height)) {
+#               ifdef APP_DEBUG
                 const int64_t timeStart = xmrig::steadyTimestamp();
+#               endif
 
                 if (ctx->module) {
                     cuModuleUnload(ctx->module);
@@ -881,8 +883,10 @@ void cryptonight_gpu_hash(nvid_ctx *ctx, xmrig::Algo algo, xmrig::Variant varian
 
                 CryptonightR_get_program(ptx, lowered_name, variant, height + 1, ctx->device_arch[0], ctx->device_arch[1], true);
 
+#               ifdef APP_DEBUG
                 const int64_t timeFinish = xmrig::steadyTimestamp();
                 LOG_INFO("GPU #%d updated CryptonightR in %.3fs", ctx->device_id, (timeFinish - timeStart) / 1000.0);
+#               endif
             }
         }
 
@@ -921,6 +925,10 @@ void cryptonight_gpu_hash(nvid_ctx *ctx, xmrig::Algo algo, xmrig::Variant varian
 
         case VARIANT_GPU:
             cryptonight_core_gpu_hash_gpu<CRYPTONIGHT, VARIANT_GPU>(ctx, startNonce);
+            break;
+
+        case VARIANT_WOW:
+            cryptonight_core_gpu_hash<CRYPTONIGHT, VARIANT_WOW>(ctx, startNonce);
             break;
 
         case VARIANT_4:

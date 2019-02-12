@@ -3,6 +3,8 @@
 #include <mutex>
 #include <cstring>
 #include <nvrtc.h>
+#include <thread>
+
 #include "crypto/CryptoNight_monero.h"
 #include "nvidia/CudaCryptonightR_gen.h"
 #include "common/log/Log.h"
@@ -124,6 +126,11 @@ static void background_exec(T&& func)
     }
 }
 
+static bool is_64bit(xmrig::Variant variant)
+{
+    return false;
+}
+
 static void CryptonightR_build_program(
     std::vector<char>& ptx,
     std::string& lowered_name,
@@ -189,8 +196,8 @@ static void CryptonightR_build_program(
     char buf[64];
     sprintf(buf, "--gpu-architecture=compute_%d%d", arch_major, arch_minor);
 
-    const char* opts[2] = { buf, (variant == xmrig::VARIANT_4_64) ? "--define-macro=RANDOM_MATH_64_BIT" : nullptr };
-    result = nvrtcCompileProgram(prog, (variant == xmrig::VARIANT_4_64) ? 2 : 1, opts);
+    const char* opts[2] = { buf, is_64bit(variant) ? "--define-macro=RANDOM_MATH_64_BIT" : nullptr };
+    result = nvrtcCompileProgram(prog, is_64bit(variant) ? 2 : 1, opts);
     if (result != NVRTC_SUCCESS) {
         LOG_ERR("nvrtcCompileProgram failed: %s", nvrtcGetErrorString(result));
 
@@ -252,12 +259,6 @@ void CryptonightR_get_program(std::vector<char>& ptx, std::string& lowered_name,
 
     ptx.clear();
 
-    if ((variant != xmrig::VARIANT_4) && (variant != xmrig::VARIANT_4_64))
-    {
-        LOG_ERR("CryptonightR_get_program: invalid variant %d", variant);
-        return;
-    }
-
     const char* source_code_template =
         #include "CryptonightR.cu"
     ;
@@ -270,7 +271,22 @@ void CryptonightR_get_program(std::vector<char>& ptx, std::string& lowered_name,
     }
 
     V4_Instruction code[256];
-    const int code_size = v4_random_math_init(code, height);
+    int code_size;
+    switch (variant)
+    {
+    case xmrig::VARIANT_WOW:
+        code_size = v4_random_math_init<xmrig::VARIANT_WOW>(code, height);
+        break;
+    case xmrig::VARIANT_4:
+        code_size = v4_random_math_init<xmrig::VARIANT_4>(code, height);
+        break;
+    case xmrig::VARIANT_4_64:
+        code_size = v4_random_math_init<xmrig::VARIANT_4_64>(code, height);
+        break;
+    default:
+        LOG_ERR("CryptonightR_get_program: invalid variant %d", variant);
+        return;
+    }
 
     std::string source_code(source_code_template, offset);
     source_code.append(get_code(code, code_size));
