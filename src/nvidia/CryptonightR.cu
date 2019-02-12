@@ -1,5 +1,9 @@
 R"===(
 
+#define VARIANT_WOW  12 // CryptoNightR (Wownero)
+#define VARIANT_4    13 // CryptoNightR
+#define VARIANT_4_64 14 // CryptoNightR, 64 bit
+
 typedef unsigned char uint8_t;
 typedef unsigned int uint32_t;
 typedef unsigned long long int uint64_t;
@@ -486,10 +490,16 @@ __global__ void CryptonightR_phase2(
         const uint64_t r4 = shuffle64<2>(sPtr, sub, ax0, 0, 0);
         const uint64_t r6 = shuffle64<2>(sPtr, sub, bx0, 0, 0);
         const uint64_t r7 = shuffle64<2>(sPtr, sub, bx1, 0, 0);
+#if ((VARIANT == VARIANT_4) || (VARIANT == VARIANT_4_64))
+        const uint64_t r8 = shuffle64<2>(sPtr, sub, bx1, 1, 1);
+#endif
 #else
         const uint32_t r4 = shuffle<2>(sPtr, sub, static_cast<uint32_t>(ax0), 0);
         const uint32_t r6 = shuffle<2>(sPtr, sub, static_cast<uint32_t>(bx0), 0);
         const uint32_t r7 = shuffle<2>(sPtr, sub, static_cast<uint32_t>(bx1), 0);
+#if ((VARIANT == VARIANT_4) || (VARIANT == VARIANT_4_64))
+        const uint32_t r8 = shuffle<2>(sPtr, sub, static_cast<uint32_t>(bx1), 1);
+#endif
 #endif
 
         if (sub == 1) {

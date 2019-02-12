@@ -128,7 +128,7 @@ static void background_exec(T&& func)
 
 static bool is_64bit(xmrig::Variant variant)
 {
-    return false;
+    return variant == xmrig::VARIANT_4_64;
 }
 
 static void CryptonightR_build_program(
@@ -193,11 +193,14 @@ static void CryptonightR_build_program(
         return;
     }
 
-    char buf[64];
-    sprintf(buf, "--gpu-architecture=compute_%d%d", arch_major, arch_minor);
+    char opt0[64];
+    sprintf(opt0, "--gpu-architecture=compute_%d%d", arch_major, arch_minor);
 
-    const char* opts[2] = { buf, is_64bit(variant) ? "--define-macro=RANDOM_MATH_64_BIT" : nullptr };
-    result = nvrtcCompileProgram(prog, is_64bit(variant) ? 2 : 1, opts);
+    char opt1[64];
+    sprintf(opt1, "-DVARIANT=%d", static_cast<int>(variant));
+
+    const char* opts[3] = { opt0, opt1, is_64bit(variant) ? "-DRANDOM_MATH_64_BIT" : nullptr };
+    result = nvrtcCompileProgram(prog, is_64bit(variant) ? 3 : 2, opts);
     if (result != NVRTC_SUCCESS) {
         LOG_ERR("nvrtcCompileProgram failed: %s", nvrtcGetErrorString(result));
 
