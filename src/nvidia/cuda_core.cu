@@ -805,7 +805,7 @@ void cryptonight_core_gpu_hash_gpu(nvid_ctx* ctx, uint32_t nonce)
 	dim3 block4( ctx->device_threads << 2 );
 	dim3 block8( ctx->device_threads << 3 );
 
-	size_t intensity = ctx->device_blocks * ctx->device_threads;
+	const uint32_t intensity = ctx->device_blocks * ctx->device_threads;
 
 	CUDA_CHECK_KERNEL(
 		ctx->device_id,
