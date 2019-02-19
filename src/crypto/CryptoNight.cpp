@@ -42,7 +42,8 @@ alignas(16) cryptonight_ctx *CryptoNight::m_ctx = nullptr;
 xmrig::Algo CryptoNight::m_algorithm = xmrig::CRYPTONIGHT;
 xmrig::AlgoVerify CryptoNight::m_av  = xmrig::VERIFY_HW_AES;
 
-bool CryptoNight::hash(const Job &job, JobResult &result, cryptonight_ctx *ctx)
+
+bool CryptoNight::hash(const xmrig::Job &job, xmrig::JobResult &result, cryptonight_ctx *ctx)
 {
     fn(job.algorithm().variant())(job.blob(), job.size(), result.result, &ctx, job.height());
 
@@ -311,7 +312,7 @@ CryptoNight::cn_hash_fun CryptoNight::fn(xmrig::Algo algorithm, xmrig::AlgoVerif
 #       endif
     };
 
-    static_assert((VARIANT_MAX * 2 * CRYPTONIGHT_MAX) == sizeof(func_table) / sizeof(func_table[0]), "func_table size mismatch");
+    static_assert((VARIANT_MAX * 2 * ALGO_MAX) == sizeof(func_table) / sizeof(func_table[0]), "func_table size mismatch");
 
     const size_t index = VARIANT_MAX * 2 * algorithm + 2 * variant + av - 1;
 
@@ -348,12 +349,12 @@ bool CryptoNight::selfTest() {
         }
 
         return verify(VARIANT_0, test_output_v0)    &&
-               verify(VARIANT_1,   test_output_v1)  &&
-               verify(VARIANT_2,   test_output_v2)  &&
-               verify(VARIANT_XTL, test_output_xtl) &&
-               verify(VARIANT_MSR, test_output_msr) &&
-               verify(VARIANT_XAO, test_output_xao) &&
-               verify(VARIANT_RTO, test_output_rto) &&
+               verify(VARIANT_1,    test_output_v1)  &&
+               verify(VARIANT_2,    test_output_v2)  &&
+               verify(VARIANT_XTL,  test_output_xtl) &&
+               verify(VARIANT_MSR,  test_output_msr) &&
+               verify(VARIANT_XAO,  test_output_xao) &&
+               verify(VARIANT_RTO,  test_output_rto) &&
 #              ifndef XMRIG_NO_CN_GPU
                verify(VARIANT_GPU, test_output_gpu) &&
 #              endif
